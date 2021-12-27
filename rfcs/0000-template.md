@@ -1,5 +1,5 @@
-- Feature Name: my-awesome-feature
-- Start Date: 2021-12-27
+- Feature Name: ${NAME}
+- Start Date: ${DATE}
 - Repository: [ilpvfx/repo-name](https://github.com/ilpvfx/repo-name)
 - [optional] RFC PR: [ilpvfx/repo-name#0000](https://github.com/ilpvfx/repo-name/0000)
 JIRA Ticket|Project: [KEY-0](https://ilpvfx.atlassian.net/browse/KEY-0)

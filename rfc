@@ -1,0 +1,12 @@
+#!/bin/bash
+
+function help(){
+    echo "./rfc create my-awesome-feature"
+    exit 1;
+}
+
+
+case $1 in
+    create) scripts/create_rfc ;;
+    *) echo "unknown action" && help && exit 1;;
+esac

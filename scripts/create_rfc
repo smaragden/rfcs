@@ -1,0 +1,85 @@
+#!/bin/bash
+
+set -e
+
+trap rollback SIGINT ERR
+MASTER_BRANCH=master
+RFC_FILE=""
+BRANCH_NAME=""
+
+function rollback()
+{
+    echo ""
+    echo "Cleaning Up"
+    echo "$RFC_FILE"
+    if [ -z "$RFC_FILE" ]
+    then
+        rm -v $RFC_FILE
+    fi
+    git checkout ${MASTER_BRANCH}
+
+    git branch -D $BRANCH_NAME || true
+    
+    exit
+}
+
+read -p 'name: ' NAME
+
+NICE_NAME=$(sed 's/\-/ /g; s/.*/\L&/g; s/[a-z]*/\u&/g' <<<"$NAME")
+
+RFC_FILE=rfcs/0000-${NAME}.md
+BRANCH_NAME=rfc/${NAME}
+PR_TITLE="RFC: ${NICE_NAME}"
+echo ""
+echo "An rfc with the following properties will be create"
+echo "The number (0000) of the rfc will be changed when the PR is created"
+echo ""
+
+printf "%-10s = %s\n" "Name" "$NAME"
+printf "%-10s = %s\n" "Nice Name" "$NICE_NAME"
+printf "%-10s = %s\n" "Branch" "$BRANCH_NAME"
+printf "%-10s = %s\n" "File" "$RFC_FILE"
+printf "%-10s = %s\n" "PR Title" "$PR_TITLE"
+echo ""
+
+read -r -p "Do you want to continue? [Y/n] " response
+response=${response,,}    # tolower
+if [[ "$response" =~ ^(no|n)$ ]]
+then
+    echo "Ok! Bye bye!"
+    exit 0
+fi
+
+# Create the rfc file
+export NAME
+export DATE=$(date +%Y-%m-%d)
+envsubst < rfcs/0000-template.md > $RFC_FILE
+
+# Create the git branch and make an initial commit
+echo "Create Initial Commit"
+git checkout -b ${BRANCH_NAME}
+echo "Add rfc to branch: ${RFC_FILE}"
+git add $RFC_FILE
+git status
+git commit -m "Created RFC: $NAME"
+
+# Push branch to remote and create the PR
+echo "Push to remote: ${BRANCH_NAME}"
+git push origin ${BRANCH_NAME}
+echo "Create Pull Request: ${NICE_NAME}"
+gh pr create --draft --fill \
+--title "RFC: ${NICE_NAME}"
+
+# Get PR info
+PR_NUMBER=$(gh pr view --json number --jq .number)
+PR_NUMBER_PAD=$(printf "%04d" "${PR_NUMBER}")
+echo "Update PR number: ${PR_NUMBER}"
+N_RFC_FILE=$(sed s/0000/$PR_NUMBER_PAD/ <<< "$RFC_FILE")
+RENDERED_URL=$(gh repo view --json url --jq .url)/blob/${BRANCH_NAME}/${N_RFC_FILE}
+
+# Apply PR number
+git mv $RFC_FILE $N_RFC_FILE
+git add $N_RFC_FILE
+git commit $N_RFC_FILE -m "Renamed rfc file"
+git push
+gh pr edit --body "[Rendered Document](${RENDERED_URL})"
