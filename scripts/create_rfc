@@ -11,10 +11,12 @@ function rollback()
 {
     echo ""
     echo "Cleaning Up"
-    echo "$RFC_FILE"
-    if [ -z "$RFC_FILE" ]
+
+    if [ -n "$RFC_FILE" ]
     then
-        rm -v $RFC_FILE
+        echo "delete $RFC_FILE";
+        rm -v $RFC_FILE;
+        git rm -f $RFC_FILE || true
     fi
     git checkout ${MASTER_BRANCH}
 
@@ -60,7 +62,7 @@ echo "Create Initial Commit"
 git checkout -b ${BRANCH_NAME}
 echo "Add rfc to branch: ${RFC_FILE}"
 git add $RFC_FILE
-git status
+false
 git commit -m "Created RFC: $NAME"
 
 # Push branch to remote and create the PR
